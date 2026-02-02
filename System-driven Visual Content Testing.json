@@ -1,0 +1,1303 @@
+{
+  "name": "System-driven Visual Content Testing",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Visual Systems Testing",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 801082851,
+          "mode": "list",
+          "cachedResultName": "content_queue",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "posted",
+              "lookupValue": "false"
+            }
+          ]
+        },
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        }
+      },
+      "name": "Read content queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        528,
+        480
+      ],
+      "id": "69f5d681-7c2a-4b3c-8e13-96f4393eab8b",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEET_OAUTH_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pick one of the visual systems from the input items at random\nconst systems = $input.all();\nconst index = Math.floor(Math.random() * systems.length);\nreturn [systems[index]];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        480
+      ],
+      "id": "06a31077-e139-4575-8f62-df0b9f53536c",
+      "name": "Select a random image to create"
+    },
+    {
+      "parameters": {
+        "url": "=https://image.pollinations.ai/prompt/{{ encodeURIComponent($json.image_prompt) }}/?width=1000&height=1500&model=flux",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file",
+              "outputPropertyName": "image"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        944,
+        480
+      ],
+      "id": "8c8c2349-6fc9-447a-8a27-f721800017df",
+      "name": "Generate image with Pollinations.ai",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "image",
+        "name": "={{ $now.format(\"yyyyMMdd_HHmmss\") }}_{{ $('Select a random image to create').item.json.content_id }}.jpg",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "YOUR_GOOGLE_DRIVE_URL"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "Pinterest_images",
+          "cachedResultUrl": "YOUR_GOOGLE_DRIVE_FOLDER_URL"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1184,
+        480
+      ],
+      "id": "3022571b-6125-4673-bb2e-9083d4b9ad1d",
+      "name": "Upload image to Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_OAUTH_ID",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "YOUR_EMAIL",
+        "subject": "Pinterest Image + Pin Approval Request",
+        "message": "=<p>Hi [NAME],</p>\n\n<p>Please check and approve the following for your new pin:</p>\n\n<p><b>System name: </b>{{ $('Select a random image to create').item.json.system_name }}</p>\n<p><b>Image link: </b> <a href={{ $json.webViewLink }}>{{ $json.webViewLink }}</a></p>\n<p><b>Image prompt: </b> {{ $('Select a random image to create').item.json.image_prompt }}</p>\n<p><b>Pin title: </b>{{ $('Select a random image to create').item.json.pin_title }}</p>\n<p><b>Pin description: </b>{{ $('Select a random image to create').item.json.pin_description }}</p>\n<p><b>Alt text: </b>{{ $('Select a random image to create').item.json.alt_text }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1424,
+        480
+      ],
+      "id": "885f9f1e-394c-4108-b75e-9b9cae64c707",
+      "name": "Send a message with pin details and wait for approval/decline",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_OAUTH_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "be874431-eb71-412a-bcde-0ea6d6ec40ef",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1648,
+        480
+      ],
+      "id": "4720332b-922c-499d-a69f-266df612d9f1",
+      "name": "Split processing for approved vs declined pins"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL",
+        "subject": "Review the Inputs for Your New Pin",
+        "message": "=<p>Hi [NAME],</p>  \n<p>You did not approve the following inputs for your new pin:</p> \n\n<p><b>System name: </b>{{ $('Select a random image to create').item.json.system_name }}</p> \n<p><b>Image link: </b> <a href={{ $json.webViewLink }}>{{ $json.webViewLink }}</a></p> \n<p><b>Image prompt: </b> {{ $('Select a random image to create').item.json.image_prompt }}</p> \n<p><b>Pin title: </b>{{ $('Select a random image to create').item.json.pin_title }}</p> \n<p><b>Pin description: </b>{{ $('Select a random image to create').item.json.pin_description }}</p> \n<p><b>Alt text: </b>{{ $('Select a random image to create').item.json.alt_text }}</p>\n<p> Please make sure this is correct, and if not, you can trigger the workflow manually or upload the pin yourself.</p>\n<p> If you are not happy with the inputs, review your Google Sheets with content instructions, adjust/edit as needed, then test and rerun the workflow.\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2064,
+        704
+      ],
+      "id": "b6afdad9-9586-494b-bec9-edbe32f4aede",
+      "name": "If declined, send message asking to review setup",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_OAUTH_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-sandbox.pinterest.com/v5/pins",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_PINTEREST_SANDBOX_ACCESS_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"board_id\": \"{{ $('Select a random image to create').item.json.board_id }}\",\n  \"title\": \"{{ $('Select a random image to create').item.json.pin_title }}\",\n  \"description\": \"{{ $('Select a random image to create').item.json.pin_description }}\",\n  \"alt_text\": \"{{ $('Select a random image to create').item.json.alt_text }}\",\n  \"media_source\": {\n    \"source_type\": \"image_url\",\n    \"url\": \"{{ 'https://image.pollinations.ai/prompt/' + encodeURIComponent($('Select a random image to create').item.json.image_prompt) + '/?width=1000&height=1500&model=flux' }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2064,
+        384
+      ],
+      "id": "699d4fd2-1b15-4ca5-a1cd-a3dfa51fa90a",
+      "name": "If approved, upload pin to Pinterest",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1SDNslDMNsZTDzVVXrBy9ooS1esf6IJjgEQQAwW_9-0E",
+          "mode": "list",
+          "cachedResultName": "Visual Systems Testing",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 801082851,
+          "mode": "list",
+          "cachedResultName": "content_queue",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "content_id": "={{ $('Select a random image to create').item.json.content_id }}",
+            "image_url": "={{ 'https://image.pollinations.ai/prompt/' + encodeURIComponent($('Select a random image to create').item.json.image_prompt) + '/?width=1000&height=1500&model=flux' }}",
+            "posted_at": "={{ $now.format(\"yyyy/MM/dd HH:mm:ss\") }}",
+            "pin_id": "={{ $json.id }}",
+            "posted": "true"
+          },
+          "matchingColumns": [
+            "content_id"
+          ],
+          "schema": [
+            {
+              "id": "content_id",
+              "displayName": "content_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "system_id",
+              "displayName": "system_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "system_name",
+              "displayName": "system_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "success_dimensions",
+              "displayName": "success_dimensions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_prompt",
+              "displayName": "image_prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pin_title",
+              "displayName": "pin_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pin_description",
+              "displayName": "pin_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tagged_topics",
+              "displayName": "tagged_topics",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alt_text",
+              "displayName": "alt_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "posted",
+              "displayName": "posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "posted_at",
+              "displayName": "posted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "board_id",
+              "displayName": "board_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pin_id",
+              "displayName": "pin_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2288,
+        384
+      ],
+      "id": "c0d7cbb2-e830-4aa9-96a4-e58b6fb5da40",
+      "name": "Update posted, image_url, and poasted_at",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEET_OAUTH_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.pinterest.com/v5/pins/{{ $json.pin_id }}/analytics",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_PINTEREST_STANDARD_ACCESS_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2896,
+        384
+      ],
+      "id": "9546b5b6-1f7a-4563-a828-19c1b6e0716e",
+      "name": "Get pin analytics"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        480
+      ],
+      "id": "13d26119-7618-4508-b34c-3977437a3801",
+      "name": "Daily 9AM trigger"
+    },
+    {
+      "parameters": {
+        "content": "### Workflow 1: Pinterest Board Creation (Run This Workflow Only Once)\n**Fetch Visual System Data**\nGet the data on each active visual system from the visual_systems sheet. \n\n**Create System-Specific Pinterest Boards**\nLoop over each system and create a corresponding Pinterest board. We need to create boards through API to easily fetch the board IDs. \n\n**Store System-Specific Pinterest Board IDs**\nFetch the corresponding board ID and store in the visual_system sheet for later use. ",
+        "height": 464,
+        "width": 1472,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        128,
+        -528
+      ],
+      "typeVersion": 1,
+      "id": "a592a94f-d093-448a-abc6-ba6e023c57f3",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        272,
+        -288
+      ],
+      "id": "6034f515-d03c-45ef-b5bd-9f8beef4fc0a",
+      "name": "Manual execution trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1SDNslDMNsZTDzVVXrBy9ooS1esf6IJjgEQQAwW_9-0E",
+          "mode": "list",
+          "cachedResultName": "Visual Systems Testing",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "visual_systems",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "active",
+              "lookupValue": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        -288
+      ],
+      "id": "911f88e7-83e3-4069-afee-a64c921eb1b2",
+      "name": "Get visual systems data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEET_OAUTH_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        688,
+        -288
+      ],
+      "id": "820d1a36-ef3a-4068-aa82-a7bae38d100f",
+      "name": "Loop over each visual system"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-sandbox.pinterest.com/v5/boards",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_PINTEREST_SANDBOX_ACCESS_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"Visual System Design Test Board - {{ $json.system_id }}\",\n  \"description\": \"Test board for visual system design automation for {{ $json.system_name }} system\",\n  \"privacy\": \"PUBLIC\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        944,
+        -272
+      ],
+      "id": "a7c1ec20-aeb4-4130-aa1c-77d75a172538",
+      "name": "Create a Pinterest board for each system"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1SDNslDMNsZTDzVVXrBy9ooS1esf6IJjgEQQAwW_9-0E",
+          "mode": "list",
+          "cachedResultName": "Visual Systems Testing",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "visual_systems",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "board_id": "={{ $json.id }}",
+            "system_id": "={{ $('Loop over each visual system').item.json.system_id }}"
+          },
+          "matchingColumns": [
+            "system_id"
+          ],
+          "schema": [
+            {
+              "id": "brand_name",
+              "displayName": "brand_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "content_theme",
+              "displayName": "content_theme",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_audience",
+              "displayName": "target_audience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "system_id",
+              "displayName": "system_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "system_name",
+              "displayName": "system_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "success_dimensions",
+              "displayName": "success_dimensions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "design_intent",
+              "displayName": "design_intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "colour_rules",
+              "displayName": "colour_rules",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "composition_rules",
+              "displayName": "composition_rules",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "typography_style",
+              "displayName": "typography_style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "visual_style",
+              "displayName": "visual_style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "texture_rules",
+              "displayName": "texture_rules",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "prompt_instruction",
+              "displayName": "prompt_instruction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "prompt_constraints",
+              "displayName": "prompt_constraints",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "active",
+              "displayName": "active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "board_id",
+              "displayName": "board_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1200,
+        -272
+      ],
+      "id": "34af0c69-f55b-4412-baf9-30b0e48497fb",
+      "name": "Fetch and save board ID",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEET_OAUTH_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### Workflow 2: Visual System Testing with Pinterest\n**Daily Trigger**\nSchedule workflow start every day at 9:00 AM GMT.\n\n**Random Image Selection**\nRetrieve unpublished content from the 'content_queue' sheet and randomly select one item to post with JavaScript.\n\n**AI Image Generation & Upload**\nCreate the image using Pollinations.ai and save it to Google Drive for backup and review.\n\n**Human Approval**\nEmail human reviewer with the image, prompt, and pin details. Workflow pauses until the reviewer approves or declines.\n\n**If Approved: Upload to Pinterest**\nPosts the pin to Pinterest and update the content_queue sheet to mark it as posted and add pin image and ID\n\n**If Declined: Send Content Review Reminder**\nEmail the human reviewer to review and adjust the content setup and data in Google Sheets.",
+        "height": 848,
+        "width": 2416,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        128,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "e5f4f4fb-6dbf-4856-8a52-086c435c8d41",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1SDNslDMNsZTDzVVXrBy9ooS1esf6IJjgEQQAwW_9-0E",
+          "mode": "list",
+          "cachedResultName": "Visual Systems Testing",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 801082851,
+          "mode": "list",
+          "cachedResultName": "content_queue",
+          "cachedResultUrl": "GOOGLE_SHEET_URL"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "content_id"
+          ],
+          "schema": [
+            {
+              "id": "content_id",
+              "displayName": "content_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "system_id",
+              "displayName": "system_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "system_name",
+              "displayName": "system_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "success_dimensions",
+              "displayName": "success_dimensions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_prompt",
+              "displayName": "image_prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pin_title",
+              "displayName": "pin_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pin_description",
+              "displayName": "pin_description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tagged_topics",
+              "displayName": "tagged_topics",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alt_text",
+              "displayName": "alt_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "posted",
+              "displayName": "posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "posted_at",
+              "displayName": "posted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "board_id",
+              "displayName": "board_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pin_id",
+              "displayName": "pin_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "impressions",
+              "displayName": "impressions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "outbound_clicks",
+              "displayName": "outbound_clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "pin_clicks",
+              "displayName": "pin_clicks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "saves",
+              "displayName": "saves",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "save_rate",
+              "displayName": "save_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3104,
+        384
+      ],
+      "id": "e0540965-8419-4a2e-b4f0-4c6e83a69f19",
+      "name": "Update pin details with analytics",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEET_OAUTH_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2672,
+        384
+      ],
+      "id": "e8b30e83-71dd-4d5c-881c-68661cdb2c34",
+      "name": "Wait a week"
+    },
+    {
+      "parameters": {
+        "content": "### Workflow 2 Extension: Visual System Testing with Pinterest (Analytics Collection)\n**Wait a Week**\nPauses the workflow for a week before checking analytics. This gives the pin time to gather initial engagement data.\n\n**Pin Analytics**\nRetrieve performance metrics from Pinterest for the published pin (impressions, clicks, saves, etc.) and save into content_queue sheet for future analysis.\n\n\n\n\n",
+        "height": 528,
+        "width": 832,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2576,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "c4248f76-90b7-4607-97d4-c66140fdb448",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "#### Visual System Testing Automation\n**What This Workflow Does**\n\nThis workflow automates the process of testing visual design systems by generating AI images and posting them to Pinterest daily. It's designed for individual creators, solopreneurs, and smaller agencies who want to develop brand-consistent visuals and test audience engagement without the high costs of traditional design and A/B testing.\n\n**How It Works (Workflow 2)**\n\nEvery day at 9am, the workflow randomly selects one unpublished image prompt from your content queue, generates the image using AI, and emails you for approval before posting to Pinterest. This ensures you maintain quality control while automating the daily posting process.\nThe workflow can be extended to include pin analytics collection; however, you need to upgrade your API access to standard (by submitting a demo video to Pinterest) as the pin analytics cannot be retrieved with Sanbox token.\n\n**Prerequisites:**\n\n• Pinterest Business account with API access (free, but need to requet API token)\n• Google Sheets with populated 'content_queue' containing unpublished image prompts and pin details\n• Gmail account for approval notifications\n• Visual system parameters already defined in populated 'visual_systems' sheet - use Workflow 1 to create and get board IDs in the first instance\n\n**Additional Notes:**\n• The current setup uses Pinterest Sandbox endpoints for testing (https://api-sandbox.pinterest.com/v5). Change it to \"https://api.pinterest.com/v5\" for production.\n• Initial Pinterest API request grants Trial access which includes full Sandbox access and limited (read only) Production access. You can request a free upgrade to Standard Access for full Production access (incl. analytics) but it is unlikely to be granted for this workflow. LATE API offers an alternative for pin creation (see v2 of this workflow).\n• Pinterest Trial access API does not allow pin analytics to be collected automatically: you need to try upgrading to Standard Access API or pay for LATE Analytics add-on ($1/social set/month).\n\n**Need Help or Have Questions:**\n\nYou can find more detailed implementation instructions and explanations on my Substack at https://savvysloth.substack.com/ or email me at alenag.blog@gmail.com\n",
+        "height": 992,
+        "width": 592
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -656,
+        -384
+      ],
+      "typeVersion": 1,
+      "id": "e66310b8-b40d-4206-9910-f0ecff629daa",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read content queue": {
+      "main": [
+        [
+          {
+            "node": "Select a random image to create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select a random image to create": {
+      "main": [
+        [
+          {
+            "node": "Generate image with Pollinations.ai",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate image with Pollinations.ai": {
+      "main": [
+        [
+          {
+            "node": "Upload image to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload image to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Send a message with pin details and wait for approval/decline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message with pin details and wait for approval/decline": {
+      "main": [
+        [
+          {
+            "node": "Split processing for approved vs declined pins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split processing for approved vs declined pins": {
+      "main": [
+        [
+          {
+            "node": "If approved, upload pin to Pinterest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If declined, send message asking to review setup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If approved, upload pin to Pinterest": {
+      "main": [
+        [
+          {
+            "node": "Update posted, image_url, and poasted_at",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update posted, image_url, and poasted_at": {
+      "main": [
+        []
+      ]
+    },
+    "Daily 9AM trigger": {
+      "main": [
+        [
+          {
+            "node": "Read content queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual execution trigger": {
+      "main": [
+        [
+          {
+            "node": "Get visual systems data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get visual systems data": {
+      "main": [
+        [
+          {
+            "node": "Loop over each visual system",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop over each visual system": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Create a Pinterest board for each system",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a Pinterest board for each system": {
+      "main": [
+        [
+          {
+            "node": "Fetch and save board ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch and save board ID": {
+      "main": [
+        [
+          {
+            "node": "Loop over each visual system",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get pin analytics": {
+      "main": [
+        [
+          {
+            "node": "Update pin details with analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait a week": {
+      "main": [
+        [
+          {
+            "node": "Get pin analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false,
+    "executionTimeout": -1
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
