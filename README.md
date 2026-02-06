@@ -97,7 +97,7 @@ The workflow expects two sheets with specific columns:
 
 ## Limitations
 
-- **Pinterest API Constraints**: Live pin creation and analytics collection require Standard API access
+- **Pinterest API Constraints**: Live pin creation and analytics collection requires Standard API access
 - **Sandbox vs Production**: Initial setup uses sandbox environment
 - **Manual Approval Required**: Human oversight needed for quality control
 - **Rate Limits**: Subject to Pinterest API rate limits

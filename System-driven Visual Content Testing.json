@@ -59,7 +59,7 @@
     },
     {
       "parameters": {
-        "url": "=https://image.pollinations.ai/prompt/{{ encodeURIComponent($json.image_prompt) }}/?width=1000&height=1500&model=flux",
+        "url": "=hhttps://gen.pollinations.ai/image/{{ encodeURIComponent($json.image_prompt) }}/?width=1000&height=1500&model=flux&key=YOUR_POLLINATIONS_API_KEY",
         "options": {
           "response": {
             "response": {
@@ -119,7 +119,7 @@
     {
       "parameters": {
         "operation": "sendAndWait",
-        "sendTo": "YOUR_EMAIL",
+        "sendTo": "YOUR_EMAIL_ADDRESS",
         "subject": "Pinterest Image + Pin Approval Request",
         "message": "=<p>Hi [NAME],</p>\n\n<p>Please check and approve the following for your new pin:</p>\n\n<p><b>System name: </b>{{ $('Select a random image to create').item.json.system_name }}</p>\n<p><b>Image link: </b> <a href={{ $json.webViewLink }}>{{ $json.webViewLink }}</a></p>\n<p><b>Image prompt: </b> {{ $('Select a random image to create').item.json.image_prompt }}</p>\n<p><b>Pin title: </b>{{ $('Select a random image to create').item.json.pin_title }}</p>\n<p><b>Pin description: </b>{{ $('Select a random image to create').item.json.pin_description }}</p>\n<p><b>Alt text: </b>{{ $('Select a random image to create').item.json.alt_text }}",
         "approvalOptions": {
@@ -179,7 +179,7 @@
     },
     {
       "parameters": {
-        "sendTo": "YOUR_EMAIL",
+        "sendTo": "YOUR_EMAIL_ADDRESS",
         "subject": "Review the Inputs for Your New Pin",
         "message": "=<p>Hi [NAME],</p>  \n<p>You did not approve the following inputs for your new pin:</p> \n\n<p><b>System name: </b>{{ $('Select a random image to create').item.json.system_name }}</p> \n<p><b>Image link: </b> <a href={{ $json.webViewLink }}>{{ $json.webViewLink }}</a></p> \n<p><b>Image prompt: </b> {{ $('Select a random image to create').item.json.image_prompt }}</p> \n<p><b>Pin title: </b>{{ $('Select a random image to create').item.json.pin_title }}</p> \n<p><b>Pin description: </b>{{ $('Select a random image to create').item.json.pin_description }}</p> \n<p><b>Alt text: </b>{{ $('Select a random image to create').item.json.alt_text }}</p>\n<p> Please make sure this is correct, and if not, you can trigger the workflow manually or upload the pin yourself.</p>\n<p> If you are not happy with the inputs, review your Google Sheets with content instructions, adjust/edit as needed, then test and rerun the workflow.\n",
         "options": {}
@@ -218,7 +218,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"board_id\": \"{{ $('Select a random image to create').item.json.board_id }}\",\n  \"title\": \"{{ $('Select a random image to create').item.json.pin_title }}\",\n  \"description\": \"{{ $('Select a random image to create').item.json.pin_description }}\",\n  \"alt_text\": \"{{ $('Select a random image to create').item.json.alt_text }}\",\n  \"media_source\": {\n    \"source_type\": \"image_url\",\n    \"url\": \"{{ 'https://image.pollinations.ai/prompt/' + encodeURIComponent($('Select a random image to create').item.json.image_prompt) + '/?width=1000&height=1500&model=flux' }}\"\n  }\n}",
+        "jsonBody": "={\n  \"board_id\": \"{{ $('Select a random image to create').item.json.board_id }}\",\n  \"title\": \"{{ $('Select a random image to create').item.json.pin_title }}\",\n  \"description\": \"{{ $('Select a random image to create').item.json.pin_description }}\",\n  \"alt_text\": \"{{ $('Select a random image to create').item.json.alt_text }}\",\n  \"media_source\": {\n    \"source_type\": \"image_url\",\n    \"url\": \"{{ 'https://gen.pollinations.ai/image/' + encodeURIComponent($('Select a random image to create').item.json.image_prompt) + '/?width=1000&height=1500&model=flux&key=YOUR_POLLINATIONS_API_KEY' }}\"\n  }\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -237,7 +237,7 @@
         "operation": "update",
         "documentId": {
           "__rl": true,
-          "value": "1SDNslDMNsZTDzVVXrBy9ooS1esf6IJjgEQQAwW_9-0E",
+          "value": "YOUR_GOOGLE_SHEET_ID",
           "mode": "list",
           "cachedResultName": "Visual Systems Testing",
           "cachedResultUrl": "GOOGLE_SHEET_URL"
@@ -253,7 +253,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "content_id": "={{ $('Select a random image to create').item.json.content_id }}",
-            "image_url": "={{ 'https://image.pollinations.ai/prompt/' + encodeURIComponent($('Select a random image to create').item.json.image_prompt) + '/?width=1000&height=1500&model=flux' }}",
+            "image_url": "={{ 'https://gen.pollinations.ai/image/' + encodeURIComponent($('Select a random image to create').item.json.image_prompt) + '/?width=1000&height=1500&model=flux&key=YOUR_POLLINATIONS_API_KEY' }}",
             "posted_at": "={{ $now.format(\"yyyy/MM/dd HH:mm:ss\") }}",
             "pin_id": "={{ $json.id }}",
             "posted": "true"
