@@ -97,10 +97,51 @@ The workflow expects two sheets with specific columns:
 
 ## Limitations
 
-- **Pinterest API Constraints**: Live pin creation and analytics collection requires Standard API access
+- **Pinterest API Constraints**: Live pin creation and analytics collection require Standard API access
 - **Sandbox vs Production**: Initial setup uses sandbox environment
 - **Manual Approval Required**: Human oversight needed for quality control
 - **Rate Limits**: Subject to Pinterest API rate limits
+
+## Workflow Variants
+
+### Original Workflow: System-driven Visual Content Testing.json
+The original n8n workflow that uses Pinterest's Sandbox API for testing. This version is ideal for initial testing and development but has limitations for live pin creation.
+
+### Updated Workflow: System-driven Visual Content Testing v2.json
+An enhanced version of the original workflow that uses **LATE API** instead of Pinterest's direct API for posting pins. Key differences:
+
+- **Live Pin Creation**: Uses LATE API (`https://getlate.dev/api/v1/posts`) for actual pin posting, not just sandbox testing
+- **Simplified Board Setup**: Boards are created manually on Pinterest, then fetched via API
+- **LATE Integration**: Requires LATE account connected to Pinterest (free for 20 posts/month)
+- **Pinterest Account ID**: Required from LATE dashboard for authentication
+- **Analytics Option**: LATE offers analytics add-on ($1/social set/month) as alternative to Pinterest Standard API
+
+### Make Alternative: Create Pinterest pins from Google Sheets data using Pollination AI Make.blueprint.json
+A Make.com blueprint version of the same automation workflow that uses Make's Pinterest module instead of n8n. This provides:
+- **Make.com Interface**: Alternative to n8n for users who prefer Make's visual workflow builder
+- **Pinterest Module**: Uses Make's native Pinterest integration instead of direct API calls
+- **Same Core Functionality**: Google Sheets integration, Pollinations AI image generation, and Pinterest posting
+
+## Spreadsheet Templates
+
+Two spreadsheet templates are included for easy setup:
+
+### Visual System Testing with Pinterest.xlsx
+Template designed specifically for the n8n workflows with the required sheet structure:
+- `content_queue` sheet for managing image prompts and pin details
+- `visual_systems` sheet for visual system parameters and board IDs
+- Pre-formatted columns matching the workflow requirements
+
+### Visual Systems Testing - Make.xlsx
+Template optimised for the Make.com blueprint with corresponding structure for Make modules.
+
+## Demo Video
+
+A demo video showing the n8n workflow in action with Pinterest API integration is available. This video demonstrates:
+- Workflow setup and configuration
+- AI image generation process
+- Human approval workflow
+- Pin creation to Pinterest
 
 ---
 
